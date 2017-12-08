@@ -1,4 +1,4 @@
-# 7th_Semester_OS
+# 7th-Semester-OS
 Operating Systems homework of National Technical University of Athens
 
 # LICENSE
