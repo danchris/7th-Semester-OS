@@ -2,4 +2,5 @@
 *.odt
 *.html
 .*
+*.png
 !/.gitignore
