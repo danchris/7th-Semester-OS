@@ -1,5 +1,0 @@
-1. Otan kanoume kill thn diergasia A ta paidia tis tha meinoun "orfana" kai tha termatisoun wstoso dn tha mporoun na dwsoun to sima ston patera tous ton "A" opote tha prepei to leitorgiko na termatiseit hn diadikasia
-
-2. to getpid() pire to pid tou process tou programmatos mas opote san riza tou dentrou deixnei auto epeidh kanei fork() kai dhmiourgei to A deixnei to A kai ta paidia tou opws kanonika tha prepei na deiksei kai to allo paidi prokiptei apo tin sinartisi show_pstree(pid_t p) pou uparxei sto arxeio pro-common.c to prwto process einai to snprintf kai to allo einai to pstree
-
-3. dioti mporei na dimiourgithoun polla paidia auto exei kostos sta resources tou CPU episis mporei na prokipsoun polla orfana paidia kai auto varenei to leitourgiko
