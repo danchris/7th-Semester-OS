@@ -1,4 +1,5 @@
 *.pdf
 *.odt
 *.html
-.LICENSE
+.*
+!/.gitignore
