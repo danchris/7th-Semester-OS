@@ -45,25 +45,19 @@ void *increase_fn(void *arg)
 
 	fprintf(stderr, "About to increase variable %d times\n", N);
 
-    pthread_mutex_lock(&m);
 
 	for (i = 0; i < N; i++) {
 		if (USE_ATOMIC_OPS) {
-			/* ... */
-			/* You can modify the following line */
             __sync_add_and_fetch(&ip,1);
-	//		++(*ip);
-			/* ... */
-		} else {
-			/* ... */
-			/* You cannot modify the following line */
+		}
+        else {
+            pthread_mutex_lock(&m);
 			++(*ip);
-			/* ... */
+            pthread_mutex_unlock(&m);
 		}
 	}
 	fprintf(stderr, "Done increasing variable.\n");
 
-    pthread_mutex_unlock(&m);
 
     return NULL;
 }
@@ -75,25 +69,18 @@ void *decrease_fn(void *arg)
 
 	fprintf(stderr, "About to decrease variable %d times\n", N);
 
-    pthread_mutex_lock(&m);
 
     for (i = 0; i < N; i++) {
 		if (USE_ATOMIC_OPS) {
-			/* ... */
-			/* You can modify the following line */
             __sync_sub_and_fetch(&ip,1);
-	//		--(*ip);
-			/* ... */
-		} else {
-			/* ... */
-			/* You cannot modify the following line */
+		}
+        else {
+            pthread_mutex_lock(&m);
 			--(*ip);
-			/* ... */
+            pthread_mutex_unlock(&m);
 		}
 	}
 	fprintf(stderr, "Done decreasing variable.\n");
-
-    pthread_mutex_unlock(&m);
 
 	return NULL;
 }
