@@ -4,4 +4,6 @@ Askisi\ 3/
 *.odt
 *.html
 .*
+*.c.*
+*.txt
 !/.gitignore
