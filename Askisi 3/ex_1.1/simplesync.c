@@ -52,7 +52,7 @@ void *increase_fn(void *arg)
 		}
         else {
             pthread_mutex_lock(&m);
-			++(*ip);
+            ++(*ip);
             pthread_mutex_unlock(&m);
 		}
 	}
@@ -76,7 +76,7 @@ void *decrease_fn(void *arg)
 		}
         else {
             pthread_mutex_lock(&m);
-			--(*ip);
+            --(*ip);
             pthread_mutex_unlock(&m);
 		}
 	}
