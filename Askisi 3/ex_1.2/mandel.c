@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "mandel-lib.h"
 
@@ -23,13 +24,11 @@
 /***************************
  * Compile-time parameters *
  ***************************/
-
 struct thread_args {
     int fd;
     int line;
 };
 
-int N;
 /*
  * Output at the terminal is is x_chars wide by y_chars long
 */
@@ -117,17 +116,11 @@ void *compute_and_output_mandel_line(void *data)
 	int color_val[x_chars];
     int fd = args->fd;
     int line = args->line;
-//    sem_t sem;
-
-//    sem_init(&sem, 0, 1);
-//    sem_wait(&sem);
 
 	compute_mandel_line(line, color_val);
 	output_mandel_line(fd, color_val);
 
-//    sem_post(&sem);
-//    sem_destroy(&sem);
-    free(args);
+  //  free(args);
 
     return NULL;
 }
@@ -138,11 +131,12 @@ int main(int argc, char** argv) {
         fprintf(stderr,"Usage %s <NTHREADS>\n",argv[0]);
         exit(1);
     }
-    N = atoi(argv[1]);
+    int N = atoi(argv[1]);
     int line, ret;
-    pthread_t t[N*y_chars];
+    pthread_t t[N][y_chars];
 
-    sem_t sem[y_chars];
+  //  sem_t sem[y_chars];
+   sem_t s1,s2;
 
 
 	xstep = (xmax - xmin) / x_chars;
@@ -152,33 +146,33 @@ int main(int argc, char** argv) {
 	 * draw the Mandelbrot Set, one line at a time.
 	 * Output is sent to file descriptor '1', i.e., standard output.
 	 */
-    int i = 0;
-	for (line = 0; line < y_chars; line++,i++) {
-
-        sem_init(&sem[line], 0, 1);
-        sem_wait(&sem[line]);
-        for(int k=0; k < N; k++) {
-            struct thread_args *args = malloc(sizeof(struct thread_args));
-            args->fd = 1;
-            args->line = k*N+line;
-            ret = pthread_create(&t[k*N+line], NULL, compute_and_output_mandel_line, args);
+    sem_init(&s1, 0, 1);
+    for(int i = 0; i < N; i++) {
+        sem_init(&s2,0,1);
+        sem_wait(&s1);
+        for(line = 0; line < y_chars; line++) {
+            struct thread_args *arguments = malloc(sizeof(struct thread_args));
+            arguments->fd = 1;
+            arguments->line = line;
+            sem_wait(&s2);
+            ret = pthread_create(&t[i][line], NULL, compute_and_output_mandel_line, arguments);
             if(ret) {
                 perror_pthread(ret, "pthread_create");
                 exit(1);
             }
+            sem_post(&s2);
+            sem_destroy(&s2);
         }
-        sem_post(&sem[line]);
-        sem_destroy(&sem[line]);
+        sem_post(&s1);
+        sem_destroy(&s1);
     }
-
-    for(line = 0; line < y_chars; line++) {
-        for(int k=0; k < N; k++){
-            ret = pthread_join(t[k*N+line], NULL);
-	        if (ret)
-		        perror_pthread(ret, "pthread_join");
-            }
+    for( int i = 0; i < N; i++) {
+        for(line = 0; line < y_chars; line++) {
+            ret = pthread_join(t[i][line], NULL);
+            if (ret)
+                perror_pthread(ret, "pthread_join");
+        }
     }
-
 	reset_xterm_color(1);
 	return 0;
 }
