@@ -165,15 +165,13 @@ int main(int argc, char** argv)
 
     xstep = (xmax - xmin) / x_chars;
     ystep = (ymax - ymin) / y_chars;
+
     for(int c = 0; c < N; c++) {
         sem_init(&s[c],0,0);
     }
-    /*
-     * draw the Mandelbrot Set, one line at a time.
-     * Output is sent to file descriptor '1', i.e., standard output.
-     */
 
     sem_post(&s[0]);
+
     for(line = 0; line < N; line++){
         thread_args *ar = (thread_args*)safe_malloc(sizeof(thread_args));
         ar->line = line;
@@ -184,6 +182,7 @@ int main(int argc, char** argv)
 		    exit(1);
 	    }
     }
+
     for(line = 0; line < N; line++){
         ret = pthread_join(t[line],NULL);
         if (ret)
