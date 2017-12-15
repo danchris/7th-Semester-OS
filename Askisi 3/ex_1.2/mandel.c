@@ -133,7 +133,9 @@ void compute_and_output_mandel_line(int fd, int line)
     int color_val[x_chars];
 
     compute_mandel_line(line, color_val);
+    sem_wait(&s[line]);
     output_mandel_line(fd, color_val);
+    sem_post(&s[(line+1)]);
 }
 
 void *solver(void* data){
@@ -143,10 +145,10 @@ void *solver(void* data){
 
 
     for(int k = line; k < y_chars; k+=N){
-        sem_wait(&s[k % N]);
+     //   sem_wait(&s[k % N]);
         compute_and_output_mandel_line(1,k);
         reset_xterm_color(1);
-        sem_post(&s[(k+1) % N]);
+    //    sem_post(&s[(k+1) % N]);
     }
 
     return NULL;

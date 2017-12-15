@@ -39,9 +39,9 @@ struct kgarten_struct {
      * Here you may define any mutexes / condition variables / other variables
      * you may need.
      */
-    pthread_cond_t ch_in;
-    pthread_cond_t tc_out;
-    int remaining;
+    pthread_cond_t ch_in;           /* Condition Variable for children that want to enter */
+    pthread_cond_t tc_out;          /* Condition Variable for teachers that want to exit */
+    int remaining;                  /* Variable with remaining available seats */
 
     /*
      * You may NOT modify anything in the structure below this
@@ -168,14 +168,11 @@ void child_enter(struct thread_info_struct *thr)
     pthread_mutex_lock(&thr->kg->mutex);
 
     while(thr->kg->remaining == 0) pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
- /*   while ( (c+1) > t*r ){
-        pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
-    }
-    */
+
     ++(thr->kg->vc);
     --(thr->kg->remaining);
-    if(c <=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
     if(thr->kg->remaining > 0) pthread_cond_broadcast(&thr->kg->ch_in);
+   // if(c <=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
 
     pthread_mutex_unlock(&thr->kg->mutex);
 }
@@ -198,12 +195,12 @@ void child_exit(struct thread_info_struct *thr)
     pthread_mutex_lock(&thr->kg->mutex);
     --(thr->kg->vc);
     ++(thr->kg->remaining);
-
+    if( thr->kg->remaining  > 0 || c<=t*r) pthread_cond_broadcast(&thr->kg->ch_in);
     if ( c <= (t-1)*r) {
         pthread_cond_broadcast(&thr->kg->tc_out);
     }
-    if( thr->kg->remaining  > 0 && c<=t*r) pthread_cond_broadcast(&thr->kg->ch_in);
 
+    pthread_cond_broadcast(&thr->kg->ch_in);
     pthread_mutex_unlock(&thr->kg->mutex);
 
 
@@ -227,9 +224,9 @@ void teacher_enter(struct thread_info_struct *thr)
     pthread_mutex_lock(&thr->kg->mutex);
     ++(thr->kg->vt);
     thr->kg->remaining = thr->kg->remaining + r;
-
+    pthread_cond_broadcast(&thr->kg->ch_in);
+    if(thr->kg->remaining  > 0) pthread_cond_broadcast(&thr->kg->ch_in);
     if(c<=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
-    if(thr->kg->remaining  > 0 && t*r>=(c+1)) pthread_cond_broadcast(&thr->kg->ch_in);
 
     pthread_mutex_unlock(&thr->kg->mutex);
 }
@@ -258,6 +255,7 @@ void teacher_exit(struct thread_info_struct *thr)
 
     --(thr->kg->vt);
     thr->kg->remaining = thr->kg->remaining - r;
+    if ( (c+1) <= t*r) pthread_cond_broadcast(&thr->kg->ch_in);
     pthread_mutex_unlock(&thr->kg->mutex);
 }
 
