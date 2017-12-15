@@ -221,7 +221,7 @@ void teacher_enter(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: TEACHER ENTER\n", thr->thrid);
     pthread_mutex_lock(&thr->kg->mutex);
     ++(thr->kg->vt);
-    if ( c <= (t)*r) {
+    if ( c <= (t-1)*r) {
         pthread_cond_broadcast(&thr->kg->tc_out);
     }
     pthread_mutex_unlock(&thr->kg->mutex);
