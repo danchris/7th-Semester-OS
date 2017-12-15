@@ -41,6 +41,7 @@ struct kgarten_struct {
      */
     pthread_cond_t ch_in;
     pthread_cond_t tc_out;
+    int remaining;
 
     /*
      * You may NOT modify anything in the structure below this
@@ -166,13 +167,16 @@ void child_enter(struct thread_info_struct *thr)
 
     pthread_mutex_lock(&thr->kg->mutex);
 
-    while ( (c+1) > t*r ){
+    while(thr->kg->remaining==0) pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
+ /*   while ( (c+1) > t*r ){
         pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
     }
-
-    pthread_cond_signal(&thr->kg->tc_out);
-
+    */
     ++(thr->kg->vc);
+    --(thr->kg->remaining);
+    if(c <=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
+    if(thr->kg->remaining > 0) pthread_cond_broadcast(&thr->kg->ch_in);
+
     pthread_mutex_unlock(&thr->kg->mutex);
 }
 
@@ -184,7 +188,6 @@ void child_exit(struct thread_info_struct *thr)
     c = kg->vc;
     t = kg->vt;
     r = kg->ratio;
-
     if (!thr->is_child) {
         fprintf(stderr, "Internal error: %s called for a Teacher thread.\n",
                 __func__);
@@ -194,10 +197,12 @@ void child_exit(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: CHILD EXIT\n", thr->thrid);
     pthread_mutex_lock(&thr->kg->mutex);
     --(thr->kg->vc);
+    ++(thr->kg->remaining);
 
     if ( c <= (t-1)*r) {
         pthread_cond_broadcast(&thr->kg->tc_out);
     }
+    if( thr->kg->remaining >0 && c<=t*r) pthread_cond_broadcast(&thr->kg->ch_in);
 
     pthread_mutex_unlock(&thr->kg->mutex);
 
@@ -221,9 +226,11 @@ void teacher_enter(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: TEACHER ENTER\n", thr->thrid);
     pthread_mutex_lock(&thr->kg->mutex);
     ++(thr->kg->vt);
-    if ( c <= (t-1)*r) {
-        pthread_cond_broadcast(&thr->kg->tc_out);
-    }
+    thr->kg->remaining = thr->kg->remaining + r;
+
+    if(c<=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
+    if(thr->kg->remaining > 0 && t*r>=(c+1)) pthread_cond_broadcast(&thr->kg->ch_in);
+
     pthread_mutex_unlock(&thr->kg->mutex);
 }
 
@@ -250,6 +257,7 @@ void teacher_exit(struct thread_info_struct *thr)
     }
 
     --(thr->kg->vt);
+    thr->kg->remaining = thr->kg->remaining - r;
     pthread_mutex_unlock(&thr->kg->mutex);
 }
 
@@ -321,7 +329,7 @@ void *thread_start_fn(void *arg)
         fprintf(stderr, "Thread %d [%s]: Exited.\n", thr->thrid, nstr);
 
         /* Sleep for a while before re-entering */
-        /* usleep(rand_r(&thr->rseed) % 100000 * (thr->is_child ? 100 : 1)); */
+         usleep(rand_r(&thr->rseed) % 100000 * (thr->is_child ? 100 : 1));
         usleep(rand_r(&thr->rseed) % 100000);
 
         pthread_mutex_lock(&thr->kg->mutex);
