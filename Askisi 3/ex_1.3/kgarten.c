@@ -167,7 +167,7 @@ void child_enter(struct thread_info_struct *thr)
 
     pthread_mutex_lock(&thr->kg->mutex);
 
-    while(thr->kg->remaining==0) pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
+    while(thr->kg->remaining == 0) pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
  /*   while ( (c+1) > t*r ){
         pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
     }
@@ -202,7 +202,7 @@ void child_exit(struct thread_info_struct *thr)
     if ( c <= (t-1)*r) {
         pthread_cond_broadcast(&thr->kg->tc_out);
     }
-    if( thr->kg->remaining >0 && c<=t*r) pthread_cond_broadcast(&thr->kg->ch_in);
+    if( thr->kg->remaining  > 0 && c<=t*r) pthread_cond_broadcast(&thr->kg->ch_in);
 
     pthread_mutex_unlock(&thr->kg->mutex);
 
@@ -229,7 +229,7 @@ void teacher_enter(struct thread_info_struct *thr)
     thr->kg->remaining = thr->kg->remaining + r;
 
     if(c<=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
-    if(thr->kg->remaining > 0 && t*r>=(c+1)) pthread_cond_broadcast(&thr->kg->ch_in);
+    if(thr->kg->remaining  > 0 && t*r>=(c+1)) pthread_cond_broadcast(&thr->kg->ch_in);
 
     pthread_mutex_unlock(&thr->kg->mutex);
 }
