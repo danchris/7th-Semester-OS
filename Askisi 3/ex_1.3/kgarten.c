@@ -35,18 +35,9 @@
 /* A virtual kindergarten */
 struct kgarten_struct {
 
-    /*
-     * Here you may define any mutexes / condition variables / other variables
-     * you may need.
-     */
-    pthread_cond_t ch_in;           /* Condition Variable for children that want to enter */
-    pthread_cond_t tc_out;          /* Condition Variable for teachers that want to exit */
-    int remaining;                  /* Variable with remaining available seats */
+    pthread_cond_t cond;            /* Condition variable for both enter/exit */
+    int available;                  /* Variable with remaining available seats */
 
-    /*
-     * You may NOT modify anything in the structure below this
-     * point.
-     */
     int vt;
     int vc;
     int ratio;
@@ -166,13 +157,17 @@ void child_enter(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: CHILD ENTER\n", thr->thrid);
 
     pthread_mutex_lock(&thr->kg->mutex);
-
-    while(thr->kg->remaining == 0) pthread_cond_wait(&thr->kg->ch_in,&thr->kg->mutex);
-
+    while (thr->kg->available==0){
+        pthread_cond_wait(&thr->kg->cond,&thr->kg->mutex);
+    }
     ++(thr->kg->vc);
-    --(thr->kg->remaining);
-    if(thr->kg->remaining > 0) pthread_cond_broadcast(&thr->kg->ch_in);
-   // if(c <=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
+    --(thr->kg->available);
+
+    if (thr->kg->available > 0 || (t-1) * r >= c ) {
+        pthread_cond_broadcast(&thr->kg->cond);
+    }
+
+
 
     pthread_mutex_unlock(&thr->kg->mutex);
 }
@@ -194,13 +189,12 @@ void child_exit(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: CHILD EXIT\n", thr->thrid);
     pthread_mutex_lock(&thr->kg->mutex);
     --(thr->kg->vc);
-    ++(thr->kg->remaining);
-    if( thr->kg->remaining  > 0 || c<=t*r) pthread_cond_broadcast(&thr->kg->ch_in);
-    if ( c <= (t-1)*r) {
-        pthread_cond_broadcast(&thr->kg->tc_out);
-    }
+    ++(thr->kg->available);
 
-    pthread_cond_broadcast(&thr->kg->ch_in);
+
+    if ( c <= (t-1) * r || thr->kg->available) {
+        pthread_cond_broadcast(&thr->kg->cond);
+    }
     pthread_mutex_unlock(&thr->kg->mutex);
 
 
@@ -223,10 +217,13 @@ void teacher_enter(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: TEACHER ENTER\n", thr->thrid);
     pthread_mutex_lock(&thr->kg->mutex);
     ++(thr->kg->vt);
-    thr->kg->remaining = thr->kg->remaining + r;
-    pthread_cond_broadcast(&thr->kg->ch_in);
-    if(thr->kg->remaining  > 0) pthread_cond_broadcast(&thr->kg->ch_in);
-    if(c<=(t-1)*r) pthread_cond_broadcast(&thr->kg->tc_out);
+    thr->kg->available += r;
+
+
+    if ( c <= (t-1) * r || thr->kg->available) {
+        pthread_cond_broadcast(&thr->kg->cond);
+    }
+
 
     pthread_mutex_unlock(&thr->kg->mutex);
 }
@@ -249,13 +246,16 @@ void teacher_exit(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: TEACHER EXIT\n", thr->thrid);
 
     pthread_mutex_lock(&thr->kg->mutex);
-    while ( c > (t-1)*r ) {
-        pthread_cond_wait(&thr->kg->tc_out,&thr->kg->mutex);
+    while (c > (t-1)*r || thr->kg->available ){
+        pthread_cond_wait(&thr->kg->cond,&thr->kg->mutex);
+    }
+    --(thr->kg->vt);
+    thr->kg->available -= r;
+
+    if ( c <= (t-1)*r || thr->kg->available ) {
+        pthread_cond_broadcast(&thr->kg->cond);
     }
 
-    --(thr->kg->vt);
-    thr->kg->remaining = thr->kg->remaining - r;
-    if ( (c+1) <= t*r) pthread_cond_broadcast(&thr->kg->ch_in);
     pthread_mutex_unlock(&thr->kg->mutex);
 }
 
@@ -309,7 +309,8 @@ void *thread_start_fn(void *arg)
          * We're inside the critical section,
          * just sleep for a while.
          */
-        usleep(rand_r(&thr->rseed) % 1000000 / (thr->is_child ? 10000 : 1));
+      /*  usleep(rand_r(&thr->rseed) % 1000000 / (thr->is_child ? 10000 : 1));
+       */
         pthread_mutex_lock(&thr->kg->mutex);
         verify(thr);
         pthread_mutex_unlock(&thr->kg->mutex);
@@ -327,7 +328,7 @@ void *thread_start_fn(void *arg)
         fprintf(stderr, "Thread %d [%s]: Exited.\n", thr->thrid, nstr);
 
         /* Sleep for a while before re-entering */
-         usleep(rand_r(&thr->rseed) % 100000 * (thr->is_child ? 100 : 1));
+        /* usleep(rand_r(&thr->rseed) % 100000 * (thr->is_child ? 100 : 1));*/        /* I hate this line */
         usleep(rand_r(&thr->rseed) % 100000);
 
         pthread_mutex_lock(&thr->kg->mutex);
@@ -374,7 +375,7 @@ int main(int argc, char *argv[])
     kg = safe_malloc(sizeof(*kg));
     kg->vt = kg->vc = 0;
     kg->ratio = ratio;
-
+    kg->available = 0;
     ret = pthread_mutex_init(&kg->mutex, NULL);
     if (ret) {
         perror_pthread(ret, "pthread_mutex_init");
