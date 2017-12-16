@@ -157,17 +157,17 @@ void child_enter(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: CHILD ENTER\n", thr->thrid);
 
     pthread_mutex_lock(&thr->kg->mutex);
+
     while (thr->kg->available==0){
         pthread_cond_wait(&thr->kg->cond,&thr->kg->mutex);
     }
+
     ++(thr->kg->vc);
     --(thr->kg->available);
 
-    if (thr->kg->available > 0 || (t-1) * r >= c ) {
+    if ( thr->kg->available > 0 || (t-1) * r >= c ) {
         pthread_cond_broadcast(&thr->kg->cond);
     }
-
-
 
     pthread_mutex_unlock(&thr->kg->mutex);
 }
@@ -187,14 +187,17 @@ void child_exit(struct thread_info_struct *thr)
     }
 
     fprintf(stderr, "THREAD %d: CHILD EXIT\n", thr->thrid);
+
     pthread_mutex_lock(&thr->kg->mutex);
+
     --(thr->kg->vc);
     ++(thr->kg->available);
 
 
-    if ( c <= (t-1) * r || thr->kg->available) {
+    if ( c <= (t-1) * r || thr->kg->available ) {
         pthread_cond_broadcast(&thr->kg->cond);
     }
+
     pthread_mutex_unlock(&thr->kg->mutex);
 
 
@@ -220,7 +223,7 @@ void teacher_enter(struct thread_info_struct *thr)
     thr->kg->available += r;
 
 
-    if ( c <= (t-1) * r || thr->kg->available) {
+    if ( c <= (t-1) * r || thr->kg->available ) {
         pthread_cond_broadcast(&thr->kg->cond);
     }
 
@@ -246,9 +249,11 @@ void teacher_exit(struct thread_info_struct *thr)
     fprintf(stderr, "THREAD %d: TEACHER EXIT\n", thr->thrid);
 
     pthread_mutex_lock(&thr->kg->mutex);
-    while (c > (t-1)*r || thr->kg->available ){
+
+    while ( c > (t-1)*r || thr->kg->available ){
         pthread_cond_wait(&thr->kg->cond,&thr->kg->mutex);
     }
+
     --(thr->kg->vt);
     thr->kg->available -= r;
 
