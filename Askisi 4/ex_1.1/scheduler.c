@@ -22,32 +22,63 @@ typedef struct node {
     struct node *next;
 } node_t;
 
-node_t *running=NULL;
-void insertToList (node_t *current, node_t *new) {
-    if(current==NULL) {
-        new->next = new;
-        new->prev = current;
-    }
-    else {
-        new->next = current->next;
-        current->next = new;
-        new->prev = current;
-    }
+node_t *running=NULL, *head=NULL;
+
+node_t *insertToEmpty ( node_t *current, pid_t p) {
+    if( current !=NULL )
+        return current;
+    node_t *c = (node_t*)malloc(sizeof(node_t));
+    c->p = p;
+    c->next = c;
+    current = c;
+
+    return current;
 }
 
-void deleteFromList (node_t *deleted) {
+node_t *insertToList(node_t *current, pid_t p){
+  if (current == NULL)
+     return insertToEmpty(current, p);
 
-    if((deleted->next)->next == deleted) {
-        (deleted->next)->next = deleted->next;
-        deleted->next->prev = NULL;
-    }
-    else {
-        (deleted->prev)->next = deleted->next;
-        (deleted->next)->prev = deleted->prev;
-    }
-    free(deleted);
+  node_t *temp = (node_t *)malloc(sizeof(node_t));
+
+  temp->p = p;
+
+  temp -> next = current -> next;
+  current -> next = temp;
+  current = temp;
+
+  return current;
 }
 
+void deleteFromList (pid_t p){
+    if(head==NULL)
+        return;
+
+    node_t *curr = head, *prev=NULL;
+
+    while (curr->p != p ) {
+        if (curr->next == head)
+            break;
+        prev = curr;
+        curr = curr->next;
+    }
+   if (curr==head){
+        prev = head;
+        while(prev->next != head)
+            prev = prev ->next;
+        head = curr->next;
+        prev->next = head;
+        free(curr);
+    }
+    else if (curr->next == head){
+        prev->next = head;
+        free(curr);
+    }
+    else {
+        prev->next = curr->next;
+        free(curr);
+    }
+}
 /*
  * SIGALRM handler
  */
@@ -92,22 +123,18 @@ sigchld_handler(int signum)
 
 		explain_wait_status(p, status);
 
-        node_t *temp = running;
-        running = temp->next;
-
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-            deleteFromList(temp);
-        free(temp);
+            deleteFromList(running->p);
 		}
 
 		if (WIFSTOPPED(status)) {
 			/* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
+        running = running->next;
         alarm(SCHED_TQ_SEC);
-      //  if(running->p == 0) running = running->next;
         printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
 	}
@@ -158,7 +185,7 @@ int main(int argc, char *argv[])
 	 * For each of argv[1] to argv[argc - 1],
 	 * create a new child process, add it to the process list.
 	 */
-    node_t *head = NULL, *curr = NULL;
+    node_t *curr = NULL;
 	char *executable = malloc(sizeof(char *));
 	char *newargv[] = { executable, NULL, NULL, NULL };
 	char *newenviron[] = { NULL };
@@ -185,17 +212,12 @@ int main(int argc, char *argv[])
             assert(0);
         }
         else{
-            node_t *new = malloc(sizeof(node_t));
-            new->p = p;
             if (i==1) {
-                head = new;
-                head->prev = NULL;
+                head = insertToEmpty(head,p);
                 curr = head;
-                insertToList(head,head);
             }
             else {
-                insertToList(curr,new);
-                curr = new;
+                curr = insertToList(curr,p);
             }
         }
     }
@@ -212,8 +234,6 @@ int main(int argc, char *argv[])
 	}
 
 
-
-  //  running = malloc(sizeof(node_t));
     running = head;
     alarm(SCHED_TQ_SEC);
     kill(running->p,SIGCONT);
