@@ -22,7 +22,7 @@ typedef struct node {
     struct node *next;
 } node_t;
 
-node_t *running=NULL, *head=NULL;
+node_t *running=NULL;
 void insertToList (node_t *current, node_t *new) {
     if(current==NULL) {
         new->next = new;
@@ -64,11 +64,6 @@ sigalrm_handler(int signum)
 	printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
     kill(running->p,SIGSTOP);
 
-	/* Setup the alarm again */
-	if (alarm(SCHED_TQ_SEC) < 0.0) {
-		perror("alarm");
-		exit(1);
-	}
 }
 
 /*
@@ -162,7 +157,7 @@ int main(int argc, char *argv[])
 	 * For each of argv[1] to argv[argc - 1],
 	 * create a new child process, add it to the process list.
 	 */
-    node_t *curr = NULL;
+    node_t *head = NULL, *curr = NULL;
 	char *executable = malloc(sizeof(char *));
 	char *newargv[] = { executable, NULL, NULL, NULL };
 	char *newenviron[] = { NULL };
