@@ -22,7 +22,7 @@ typedef struct node {
     struct node *next;
 } node_t;
 
-node_t *running=NULL;
+node_t *running=NULL, *head=NULL;
 void insertToList (node_t *current, node_t *new) {
     if(current==NULL) {
         new->next = new;
@@ -45,7 +45,6 @@ void deleteFromList (node_t *deleted) {
         (deleted->prev)->next = deleted->next;
         (deleted->next)->prev = deleted->prev;
     }
-
     free(deleted);
 }
 
@@ -60,6 +59,7 @@ sigalrm_handler(int signum)
 			signum);
 		exit(1);
 	}
+
     /* Edw prepei na stamataw thn trexousa diergasia */
 	printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
     kill(running->p,SIGSTOP);
@@ -100,16 +100,18 @@ sigchld_handler(int signum)
         node_t *temp = running;
         running = temp->next;
 
-		if (WIFEXITED(status) || WIFSIGNALED(status)) {
+        if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
             deleteFromList(temp);
 		}
+
 		if (WIFSTOPPED(status)) {
 			/* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
         alarm(SCHED_TQ_SEC);
+        if(running->p == 0) running = running->next;
         printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
 	}
@@ -160,7 +162,7 @@ int main(int argc, char *argv[])
 	 * For each of argv[1] to argv[argc - 1],
 	 * create a new child process, add it to the process list.
 	 */
-    node_t *head = NULL, *curr = NULL;
+    node_t *curr = NULL;
 	char *executable = malloc(sizeof(char *));
 	char *newargv[] = { executable, NULL, NULL, NULL };
 	char *newenviron[] = { NULL };
@@ -191,6 +193,7 @@ int main(int argc, char *argv[])
             new->p = p;
             if (i==1) {
                 head = new;
+                head->prev = NULL;
                 curr = head;
                 insertToList(head,head);
             }
