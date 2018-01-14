@@ -65,10 +65,10 @@ sigalrm_handler(int signum)
     kill(running->p,SIGSTOP);
 
 	/* Setup the alarm again */
-//	if (alarm(SCHED_TQ_SEC) < 0.0) {
-//		perror("alarm");
-//		exit(1);
-//	}
+	if (alarm(SCHED_TQ_SEC) < 0.0) {
+		perror("alarm");
+		exit(1);
+	}
 }
 
 /*
