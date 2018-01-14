@@ -99,6 +99,7 @@ sigchld_handler(int signum)
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
             deleteFromList(temp);
+        free(temp);
 		}
 
 		if (WIFSTOPPED(status)) {
@@ -106,7 +107,7 @@ sigchld_handler(int signum)
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
         alarm(SCHED_TQ_SEC);
-        if(running->p == 0) running = running->next;
+      //  if(running->p == 0) running = running->next;
         printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
 	}
