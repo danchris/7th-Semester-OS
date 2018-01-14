@@ -166,18 +166,18 @@ int main(int argc, char *argv[])
 	char *newenviron[] = { NULL };
 	nproc = argc - 1; /* number of proccesses goes here */
 
-    pid_t p[nproc];
+    pid_t p;
 
     for(int i = 1; i <= nproc; i++){
 
-        p[i] = fork();
-        if (p[i] < 0) {
+        p = fork();
+        if (p < 0) {
             /* fork failed */
             perror("fork");
             exit(1);
         }
 
-        if (p[i] == 0) {
+        if (p == 0) {
             raise(SIGSTOP);
             strcpy(executable,argv[i]);
             execve(executable, newargv, newenviron);
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
         }
         else{
             node_t *new = malloc(sizeof(node_t));
-            new->p = p[i];
+            new->p = p;
             if (i==1) {
                 head = new;
                 curr = head;
