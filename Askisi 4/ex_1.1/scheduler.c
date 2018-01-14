@@ -16,6 +16,38 @@
 #define SCHED_TQ_SEC 2                /* time quantum */
 #define TASK_NAME_SZ 60               /* maximum size for a task's name */
 
+typedef struct node {
+    pid_t p;
+    struct node *prev;
+    struct node *next;
+} node_t;
+
+node_t *running=NULL;
+void insertToList (node_t *current, node_t *new) {
+    if(current==NULL) {
+        new->next = new;
+        new->prev = current;
+    }
+    else {
+        new->next = current->next;
+        current->next = new;
+        new->prev = current;
+    }
+}
+
+void deleteFromList (node_t *deleted) {
+
+    if((deleted->next)->next == deleted) {
+        (deleted->next)->next = deleted->next;
+        deleted->next->prev = NULL;
+    }
+    else {
+        (deleted->prev)->next = deleted->next;
+        (deleted->next)->prev = deleted->prev;
+    }
+
+    free(deleted);
+}
 
 /*
  * SIGALRM handler
@@ -23,16 +55,64 @@
 static void
 sigalrm_handler(int signum)
 {
-	assert(0 && "Please fill me!");
+	if (signum != SIGALRM) {
+		fprintf(stderr, "Internal error: Called for signum %d, not SIGALRM\n",
+			signum);
+		exit(1);
+	}
+    /* Edw prepei na stamataw thn trexousa diergasia */
+	printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
+    kill(running->p,SIGSTOP);
+
+	/* Setup the alarm again */
+//	if (alarm(SCHED_TQ_SEC) < 0.0) {
+//		perror("alarm");
+//		exit(1);
+//	}
 }
 
-/* 
+/*
  * SIGCHLD handler
  */
 static void
 sigchld_handler(int signum)
 {
-	assert(0 && "Please fill me!");
+	pid_t p;
+	int status;
+
+	if (signum != SIGCHLD) {
+		fprintf(stderr, "Internal error: Called for signum %d, not SIGCHLD\n",
+			signum);
+		exit(1);
+	}
+
+	for (;;) {
+		p = waitpid(-1, &status, WUNTRACED | WNOHANG);
+		if (p < 0) {
+			perror("waitpid");
+			exit(1);
+		}
+		if (p == 0)
+			break;
+
+		explain_wait_status(p, status);
+
+        node_t *temp = running;
+        running = temp->next;
+
+		if (WIFEXITED(status) || WIFSIGNALED(status)) {
+			/* A child has died */
+			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
+            deleteFromList(temp);
+		}
+		if (WIFSTOPPED(status)) {
+			/* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
+			printf("Parent: Child has been stopped. Moving right along...\n");
+		}
+        alarm(SCHED_TQ_SEC);
+        printf("Child with pid = %d will continue\n", running->p);
+        kill(running->p,SIGCONT);
+	}
 }
 
 /* Install two signal handlers.
@@ -80,8 +160,47 @@ int main(int argc, char *argv[])
 	 * For each of argv[1] to argv[argc - 1],
 	 * create a new child process, add it to the process list.
 	 */
+    node_t *head = NULL, *curr = NULL;
+	char *executable = malloc(sizeof(char *));
+	char *newargv[] = { executable, NULL, NULL, NULL };
+	char *newenviron[] = { NULL };
+	nproc = argc - 1; /* number of proccesses goes here */
 
-	nproc = 0; /* number of proccesses goes here */
+    pid_t p[nproc];
+
+    for(int i = 1; i <= nproc; i++){
+
+        p[i] = fork();
+        if (p[i] < 0) {
+            /* fork failed */
+            perror("fork");
+            exit(1);
+        }
+
+        if (p[i] == 0) {
+            raise(SIGSTOP);
+            strcpy(executable,argv[i]);
+            execve(executable, newargv, newenviron);
+            /* execve() only returns on error */
+            perror("execve");
+            exit(1);
+            assert(0);
+        }
+        else{
+            node_t *new = malloc(sizeof(node_t));
+            new->p = p[i];
+            printf("-------Child pid = %d \n", p[i]);
+            if (i==1) {
+                head = new;
+                curr = head;
+                insertToList(head,head);
+            }
+            else {
+                insertToList(curr,new);
+                curr = new;
+            }
+        }
+    }
 
 	/* Wait for all children to raise SIGSTOP before exec()ing. */
 	wait_for_ready_children(nproc);
@@ -95,6 +214,11 @@ int main(int argc, char *argv[])
 	}
 
 
+
+  //  running = malloc(sizeof(node_t));
+    running = head;
+    alarm(SCHED_TQ_SEC);
+    kill(running->p,SIGCONT);
 	/* loop forever  until we exit from inside a signal handler. */
 	while (pause())
 		;
