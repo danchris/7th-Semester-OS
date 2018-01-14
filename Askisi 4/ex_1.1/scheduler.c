@@ -189,7 +189,6 @@ int main(int argc, char *argv[])
         else{
             node_t *new = malloc(sizeof(node_t));
             new->p = p[i];
-            printf("-------Child pid = %d \n", p[i]);
             if (i==1) {
                 head = new;
                 curr = head;
