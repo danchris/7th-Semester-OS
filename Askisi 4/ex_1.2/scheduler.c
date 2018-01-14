@@ -18,6 +18,7 @@
 
 typedef struct node {
     pid_t p;
+    struct node *prev;
     struct node *next;
 } node_t;
 
@@ -125,7 +126,6 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-
             deleteFromList(running->p);
 		}
 
