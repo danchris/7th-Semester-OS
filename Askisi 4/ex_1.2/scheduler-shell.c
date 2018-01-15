@@ -16,6 +16,8 @@
 #define SCHED_TQ_SEC 2                /* time quantum */
 #define TASK_NAME_SZ 60               /* maximum size for a task's name */
 #define SHELL_EXECUTABLE_NAME "shell" /* executable for shell */
+#define RESET   "\033[0m"
+#define RED     "\033[31m"      /* Red */
 
 typedef struct node {
     int id;
@@ -93,7 +95,7 @@ sched_kill_task_by_id(int id)
     node_t *temp = head;
     while(temp->id!=id){
         if(temp->next == head) {
-            printf("Error: Don't found this process\n");
+             printf(RED"\t\t\t\tError: Don't found process with id = %d\n"RESET,id);
             break;
         }
         temp = temp->next;

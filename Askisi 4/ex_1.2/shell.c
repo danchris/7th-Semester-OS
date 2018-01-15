@@ -14,7 +14,6 @@
 void issue_request(int wfd, int rfd, struct request_struct *rq)
 {
 	int ret;
-
 	/* Issue the request */
 	fprintf(stderr, "Shell: issuing request...\n");
 	if (write(wfd, rq, sizeof(*rq)) != sizeof(*rq)) {
