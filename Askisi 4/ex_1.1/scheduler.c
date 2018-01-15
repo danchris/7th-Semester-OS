@@ -126,7 +126,7 @@ sigchld_handler(int signum)
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
 
-            deleteFromList(running->p);
+            if (p==running->p) deleteFromList(running->p);
 		}
 
 		if (WIFSTOPPED(status)) {
