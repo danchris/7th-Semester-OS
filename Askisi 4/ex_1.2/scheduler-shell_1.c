@@ -24,53 +24,68 @@ typedef struct node {
     struct node *prev;
     struct node *next;
 } node_t;
-
 int counter=0;
 node_t *running=NULL, *head=NULL;
 
-void insertEnd (int id, pid_t p, char *name) {
-    if (head == NULL){
-        node_t *new = malloc(sizeof(node_t));
-        new->id = id;
-        new->p = p;
-        new->name = malloc(TASK_NAME_SZ * sizeof(char));
-        strcpy(new->name,name);
-        new->next = new->prev = new;
-        *&head = new;
-        return ;
-    }
+node_t *insertToEmpty ( node_t *current, pid_t p, int id, char *name) {
+    if( current !=NULL )
+        return current;
 
-    node_t *last = (head)->prev;
+    node_t *c = (node_t*)malloc(sizeof(node_t));
+    c->id = id;
+    c->name = strdup(name);
+    c->p = p;
+    c->next = c;
+    c->prev = c;
+    current = c;
 
-    node_t *new = malloc(sizeof(node_t ));
-    new->id = id;
-    new->p = p;
-    new->name = malloc(TASK_NAME_SZ * sizeof(char));
-    strcpy(new->name,name);
-    new->next = head;
-    *&head->prev = new;
-    new->prev = last;
-    last->next = new;
+    return current;
 }
 
-void deleteNode(node_t *deleted){
+node_t *insertToList(node_t *current, pid_t p, int id, char *name){
+  if (current == NULL)
+     return insertToEmpty(current, p, id, name);
+  node_t *temp = (node_t *)malloc(sizeof(node_t));
+  temp->id = id;
+  temp->name = strdup(name);
+  temp->p = p;
+  temp -> next = current -> next;
+  current -> next = temp;
+  current = temp;
 
-    if(head==NULL || deleted==NULL)
+  return current;
+}
+
+void deleteFromList (pid_t p){
+    if(head==NULL)
         return;
 
-    if(head==deleted)
-        head = deleted->next;
+    node_t *curr = head, *prev=NULL;
 
-    if(deleted->next != NULL)
-        deleted->next->prev = deleted->prev;
-
-    if(deleted->prev != NULL)
-        deleted->prev->next = deleted->next;
-
-    free(deleted);
-
-    return;
+    while (curr->p != p ) {
+        if (curr->next == head)
+            break;
+        prev = curr;
+        curr = curr->next;
+    }
+   if (curr==head){
+        prev = head;
+        while(prev->next != head)
+            prev = prev ->next;
+        head = curr->next;
+        prev->next = head;
+        free(curr);
+    }
+    else if (curr->next == head){
+        prev->next = head;
+        free(curr);
+    }
+    else {
+        prev->next = curr->next;
+        free(curr);
+    }
 }
+
 /* Print a list of all tasks currently being scheduled.  */
 static void
 sched_print_tasks(void)
@@ -99,7 +114,7 @@ sched_kill_task_by_id(int id)
         temp = temp->next;
     }
 
-    deleteNode(temp);
+    deleteFromList(temp->p);
     kill(temp->p,SIGKILL);
 	return -ENOSYS;
 }
@@ -127,7 +142,7 @@ sched_create_task(char *executable)
         assert(0);
     }
     else{
-        insertEnd(++counter,p,executable);
+        running = insertToList(head->prev,p,++counter,executable);
     }
 
 }
@@ -200,7 +215,7 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-            if (p==running->p) deleteNode(running);
+            if (p==running->p) deleteFromList(running->p);
 		}
 
 		if (WIFSTOPPED(status)) {
@@ -333,7 +348,7 @@ sched_create_shell(char *executable, int *request_fd, int *return_fd)
 		do_shell(executable, pfds_rq[1], pfds_ret[0]);
 		assert(0);
 	}
-    insertEnd(++counter,p,executable);
+    head = insertToEmpty(head,p,++counter,SHELL_EXECUTABLE_NAME);
 	/* Parent */
 	close(pfds_rq[1]);
 	close(pfds_ret[0]);
@@ -375,12 +390,14 @@ int main(int argc, char *argv[])
     pid_t p;
 	/* Two file descriptors for communication with the shell */
 	static int request_fd, return_fd;
+    node_t *curr = NULL;
 	char *executable = malloc(sizeof(char *));
 	char *newargv[] = { executable, NULL, NULL, NULL };
 	char *newenviron[] = { NULL };
 
 	/* Create the shell. */
 	sched_create_shell(SHELL_EXECUTABLE_NAME, &request_fd, &return_fd);
+    curr = head;
 	/* TODO: add the shell to the scheduler's tasks */
 
 	/*
@@ -401,13 +418,14 @@ int main(int argc, char *argv[])
 
         if (p == 0) {
             raise(SIGSTOP);
-            execve(argv[i], newargv, newenviron);
+            strcpy(executable,argv[i]);
+            execve(executable, newargv, newenviron);
             /* execve() only returns on error */
             perror("execve");
             assert(0);
         }
         else{
-            insertEnd(++counter,p,argv[i]);
+            curr = insertToList(curr,p,++counter,argv[i]);
         }
     }
 

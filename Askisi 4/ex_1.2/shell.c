@@ -166,6 +166,7 @@ int main(int argc, char *argv[])
 	for (;;) {
 		printf("Shell> ");
 		fflush(stdout);
+        sleep(1);
 		get_cmdline(stdin, cmdline, SHELL_CMDLINE_SZ);
 		process_cmdline(cmdline, wfd, rfd);
 	}

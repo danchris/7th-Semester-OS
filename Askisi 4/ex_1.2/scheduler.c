@@ -18,7 +18,6 @@
 
 typedef struct node {
     pid_t p;
-    struct node *prev;
     struct node *next;
 } node_t;
 
