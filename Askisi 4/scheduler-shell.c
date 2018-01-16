@@ -79,7 +79,7 @@ void deleteNode(node_t *deleted){
         return;
 
     if(head==deleted)
-        *&head = deleted->next;
+        head = deleted->next;
 
     if(deleted->next != NULL)
         deleted->next->prev = deleted->prev;
@@ -125,6 +125,26 @@ void insertAfter(int id, pid_t p, char *name){
     *&last->next = new;
 
 }
+/*
+void insertAfter(node_t *last, node_t *node){
+ //   node_t *last = lastHigh();
+
+    node->next = last->next;
+    *&last->next->prev = node;
+    node->prev = last;
+    *&last->next = node;
+}
+*/
+/*
+void insertAfter(node_t **last, node_t **new){
+    node_t *next = (*last)->next;
+
+    (*last)->next = *new;
+    (*new)->prev = *last;
+    (*new)->next = next;
+    next->prev = *new;
+}
+*/
 /* Print a list of all tasks currently being scheduled.  */
 static void
 sched_print_tasks(void)
@@ -189,7 +209,6 @@ sched_create_task(char *executable)
 static void
 sched_high_task_by_id(int id)
 {
-
     node_t *this = head;
     node_t *temp = lastHigh();
 
@@ -235,8 +254,11 @@ sched_low_task_by_id(int id)
         insertBegin(id,save->p,save->name);
     }
     else {
+        printf("ELAAA\n");
         deleteNode(this);
+        printf("ELAAA %s\n", save->name);
         insertAfter(id,save->p,save->name);
+        printf("ELAAA\n");
     }
     changePriority(save,0);
 
@@ -284,7 +306,7 @@ sigalrm_handler(int signum)
 
     /* Edw prepei na stamataw thn trexousa diergasia */
 	printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
-    kill(running->p,SIGSTOP);
+    if (!lastHigh()) kill(running->p,SIGSTOP);
 
 }
 
@@ -317,7 +339,6 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-            if(head->p==p && head->id == 1) deleteNode(head);
             if (p==running->p) deleteNode(running);
 		}
 
@@ -325,12 +346,7 @@ sigchld_handler(int signum)
 			/* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
-        if(lastHigh()==NULL) running = running->next;       /* if only low */
-        else if(lastHigh()->id==1) running = running->next;      /* If only shell */
-        else if (lastHigh()) {               /* if have high */
-           if (running->next->priority==1) running = running->next;
-           else running = head;
-        }
+        running = running->next;
         alarm(SCHED_TQ_SEC);
         printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
@@ -457,7 +473,6 @@ sched_create_shell(char *executable, int *request_fd, int *return_fd)
 		assert(0);
 	}
     insertEnd(++counter,p,executable);
-    changePriority(head,1);
 	/* Parent */
 	close(pfds_rq[1]);
 	close(pfds_ret[0]);
