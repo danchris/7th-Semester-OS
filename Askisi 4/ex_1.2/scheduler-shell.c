@@ -78,12 +78,14 @@ static void
 sched_print_tasks(void)
 {
     node_t *temp = head;
+    printf("-------------------------------------------------------------------------\n");
     do{
-        printf("\t\t\t\tID = %d\t|\tName = %s\t|\tPID = %d", temp->id,temp->name,temp->p);
-        if (temp==running) printf("\tRunning...");
-        printf("\n");
+        printf("|ID = %d\t|\tName = %s\t|\tPID = %d", temp->id,temp->name,temp->p);
+        if (temp==running) printf("\tRunning...\t|\n");
+        else printf("\t\t\t|\n");
         temp = temp->next;
     }while(temp!=head);
+    printf("-------------------------------------------------------------------------\n");
 }
 
 /* Send SIGKILL to a task determined by the value of its
@@ -103,7 +105,8 @@ sched_kill_task_by_id(int id)
 
     deleteNode(temp);
     kill(temp->p,SIGKILL);
-	return -ENOSYS;
+    return 0;
+//	return -ENOSYS;
 }
 
 

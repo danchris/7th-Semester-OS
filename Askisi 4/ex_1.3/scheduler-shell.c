@@ -129,12 +129,14 @@ static void
 sched_print_tasks(void)
 {
     node_t *temp = head;
+    printf("-------------------------------------------------------------------------------------------------\n");
     do{
-        printf("\t\t\t\tID = %d\t|\tName = %s\t|\tPID = %d\t|\tPRIORITY = %d", temp->id,temp->name,temp->p,temp->priority);
-        if (temp==running) printf("\tRunning...");
-        printf("\n");
+        printf("|ID = %d\t|\tName = %s\t|\tPID = %d\t|\tPRIORITY = %d", temp->id,temp->name,temp->p,temp->priority);
+        if (temp==running) printf("\tRunning...\t|\n");
+        else printf("\t\t\t|\n");
         temp = temp->next;
     }while(temp!=head);
+    printf("-------------------------------------------------------------------------------------------------\n");
 }
 
 /* Send SIGKILL to a task determined by the value of its
@@ -154,7 +156,8 @@ sched_kill_task_by_id(int id)
 
     deleteNode(temp);
     kill(temp->p,SIGKILL);
-	return -ENOSYS;
+    return 0;
+//	return -ENOSYS;
 }
 
 
@@ -233,10 +236,10 @@ sched_low_task_by_id(int id)
         deleteNode(this);
         insertBegin(id,save->p,save->name);
     }
-    else {
-        deleteNode(this);
-        insertAfter(id,save->p,save->name);
-    }
+  //  else {
+  //      deleteNode(this);
+  //      insertAfter(id,save->p,save->name);
+  //  }
     changePriority(save,0);
 
 }
@@ -324,12 +327,17 @@ sigchld_handler(int signum)
 			/* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
-        if(lastHigh()==NULL) running = running->next;       /* if only low */
-        else if(lastHigh()->id==1) running = running->next;      /* If only shell */
-        else if (lastHigh()) {               /* if have high */
-           if (running->next->priority==1) running = running->next;
-           else running = head;
+        if(lastHigh()==NULL) running = running->next;
+        else {
+            if(running->next->priority == 1) running = running->next;
+            else running = head;
         }
+      //  if(lastHigh()==NULL || lastHigh()->id==1) running = running->next;       /* if only low  or if only shell*/
+      //  else {               /* if have high */
+      //     if (running->next->priority==1) running = running->next;
+     //      else running = head;
+    //    }
+
         alarm(SCHED_TQ_SEC);
         printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
@@ -456,7 +464,6 @@ sched_create_shell(char *executable, int *request_fd, int *return_fd)
 		assert(0);
 	}
     insertEnd(++counter,p,executable);
-    changePriority(head,1);
 	/* Parent */
 	close(pfds_rq[1]);
 	close(pfds_ret[0]);
