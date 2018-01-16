@@ -236,10 +236,10 @@ sched_low_task_by_id(int id)
         deleteNode(this);
         insertBegin(id,save->p,save->name);
     }
-  //  else {
-  //      deleteNode(this);
-  //      insertAfter(id,save->p,save->name);
-  //  }
+    else {
+        deleteNode(this);
+        insertAfter(id,save->p,save->name);
+    }
     changePriority(save,0);
 
 }
