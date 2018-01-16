@@ -113,7 +113,6 @@ void insertAfter(int id, pid_t p, char *name){
         return ;
     }
 
-    printf("LAST id = %d \n", last->id);
     node_t *new = malloc(sizeof(node_t));
     new->id = id;
     new->p = p;
