@@ -304,7 +304,7 @@ sigalrm_handler(int signum)
 sigchld_handler(int signum)
 {
     pid_t p;
-    int status;
+    int status, flag=1;
 
     if (signum != SIGCHLD) {
         fprintf(stderr, "Internal error: Called for signum %d, not SIGCHLD\n",
@@ -336,12 +336,23 @@ sigchld_handler(int signum)
             printf("Parent: Child has been stopped. Moving right along...\n");
         }
 
-        if(lastHigh()==NULL) running = running->next;
-        else {
-            if(running->next->priority == 1) running = running->next;
-            else running = head;
+        if(lastHigh()==NULL) {
+            running = running->next;
+            if(running != running->next) flag = 1;
+            else flag = 0;
         }
-        alarm(SCHED_TQ_SEC);
+        else {
+            if(running->next->priority == 1) {
+                flag = 1;
+                running = running->next;
+            }
+            else {
+                flag = 0;
+                running = head;
+            }
+        }
+
+        if (flag) alarm(SCHED_TQ_SEC);
       //  printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
     }

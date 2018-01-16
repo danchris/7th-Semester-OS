@@ -223,7 +223,7 @@ sigchld_handler(int signum)
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
         running = running->next;
-        alarm(SCHED_TQ_SEC);
+        if (running != running->next) alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
 	}
 }
