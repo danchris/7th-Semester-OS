@@ -135,7 +135,7 @@ sigchld_handler(int signum)
 		}
         running = running->next;
         alarm(SCHED_TQ_SEC);
-        printf("Child with pid = %d will continue\n", running->p);
+    //    printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
 	}
 }

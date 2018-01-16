@@ -76,7 +76,6 @@ void insertBegin(int id, pid_t p, char *name){
 
 void deleteNode(node_t *deleted){
 
-    printf("del 1\n");
 
     if(deleted==head && deleted->next==head) return;
 
@@ -100,6 +99,7 @@ void deleteNode(node_t *deleted){
 
     return;
 }
+
 void changePriority(node_t *node, int priority){
     *&node->priority = priority;
 }
@@ -157,7 +157,7 @@ sched_kill_task_by_id(int id)
     while(temp->id!=id){
         if(temp->next == head) {
             printf(RED"\t\t\t\tError: Don't found process with id = %d\n"RESET,id);
-            break;
+            return -ENOSYS;
         }
         temp = temp->next;
     }
@@ -205,7 +205,7 @@ sched_high_task_by_id(int id)
     while(this->id!=id){
         if(this->next == head) {
             printf(RED"\t\t\t\tError: Don't found process with id = %d\n"RESET,id);
-            break;
+            return;
         }
         this = this->next;
     }
@@ -234,7 +234,7 @@ sched_low_task_by_id(int id)
     while(this->id!=id){
         if(this->next == head) {
             printf(RED"\t\t\t\tError: Don't found process with id = %d\n"RESET,id);
-            break;
+            return ;
         }
         this = this->next;
     }
@@ -313,7 +313,6 @@ sigchld_handler(int signum)
     }
 
     for (;;) {
-        printf("ekaaaaa\n");
         p = waitpid(-1, &status, WUNTRACED | WNOHANG);
         if (p < 0) {
             free(running);
@@ -343,7 +342,7 @@ sigchld_handler(int signum)
             else running = head;
         }
         alarm(SCHED_TQ_SEC);
-        printf("Child with pid = %d will continue\n", running->p);
+      //  printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
     }
 }
@@ -505,7 +504,7 @@ shell_request_loop(int request_fd, int return_fd)
 
 int main(int argc, char *argv[])
 {
-    int nproc;
+    int nproc, i;
     pid_t p;
     /* Two file descriptors for communication with the shell */
     static int request_fd, return_fd;
@@ -524,7 +523,7 @@ int main(int argc, char *argv[])
     nproc = argc - 1; /* number of proccesses goes here */
 
 
-    for(int i = 1; i <= nproc; i++){
+    for(i = 1; i <= nproc; i++){
 
         p = fork();
         if (p < 0) {

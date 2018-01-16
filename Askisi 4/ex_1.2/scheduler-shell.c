@@ -38,7 +38,7 @@ void insertEnd (int id, pid_t p, char *name) {
         new->name = malloc(TASK_NAME_SZ * sizeof(char));
         strcpy(new->name,name);
         new->next = new->prev = new;
-        *&head = new;
+        head = new;
         return ;
     }
 
@@ -50,29 +50,37 @@ void insertEnd (int id, pid_t p, char *name) {
     new->name = malloc(TASK_NAME_SZ * sizeof(char));
     strcpy(new->name,name);
     new->next = head;
-    *&head->prev = new;
+    head->prev = new;
     new->prev = last;
     last->next = new;
 }
 
 void deleteNode(node_t *deleted){
 
+
+    if(deleted==head && deleted->next==head) return;
+
     if(head==NULL || deleted==NULL)
         return;
 
-    if(head==deleted)
-        head = deleted->next;
+    if (deleted == head){
+        deleted->prev = (head) -> prev;
 
-    if(deleted->next != NULL)
-        deleted->next->prev = deleted->prev;
+        head = (head) -> next;
 
-    if(deleted->prev != NULL)
-        deleted->prev->next = deleted->next;
+        deleted->prev -> next = head;
+        (head) -> prev = deleted->prev;
+        free(deleted);
+        return;
+    }
+    deleted->next->prev = deleted->prev;
+    deleted->prev->next = deleted->next;
 
     free(deleted);
 
     return;
 }
+
 /* Print a list of all tasks currently being scheduled.  */
 static void
 sched_print_tasks(void)
@@ -98,7 +106,7 @@ sched_kill_task_by_id(int id)
     while(temp->id!=id){
         if(temp->next == head) {
              printf(RED"\t\t\t\tError: Don't found process with id = %d\n"RESET,id);
-            break;
+             return -ENOSYS;
         }
         temp = temp->next;
     }
@@ -216,7 +224,6 @@ sigchld_handler(int signum)
 		}
         running = running->next;
         alarm(SCHED_TQ_SEC);
-        printf("Child with pid = %d will continue\n", running->p);
         kill(running->p,SIGCONT);
 	}
 }
@@ -378,7 +385,7 @@ shell_request_loop(int request_fd, int return_fd)
 
 int main(int argc, char *argv[])
 {
-	int nproc;
+	int nproc, i;
     pid_t p;
 	/* Two file descriptors for communication with the shell */
 	static int request_fd, return_fd;
@@ -397,7 +404,7 @@ int main(int argc, char *argv[])
 	nproc = argc - 1; /* number of proccesses goes here */
 
 
-    for(int i = 1; i <= nproc; i++){
+    for(i = 1; i <= nproc; i++){
 
         p = fork();
         if (p < 0) {
