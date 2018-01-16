@@ -194,6 +194,7 @@ sigchld_handler(int signum)
 	for (;;) {
 		p = waitpid(-1, &status, WUNTRACED | WNOHANG);
 		if (p < 0) {
+            free(running);
 			perror("waitpid");
 			exit(1);
 		}
@@ -205,7 +206,7 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-            if(head->p == p && head->id == 1) deleteNode(head);
+            if(head->p==p && head->id == 1) deleteNode(head);
             if (p==running->p) deleteNode(running);
 		}
 
