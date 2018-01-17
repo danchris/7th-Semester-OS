@@ -114,7 +114,6 @@ sched_kill_task_by_id(int id)
     deleteNode(temp);
     kill(temp->p,SIGKILL);
     return 0;
-//	return -ENOSYS;
 }
 
 
@@ -184,6 +183,16 @@ sigalrm_handler(int signum)
 
 }
 
+void deletePS(pid_t p){
+    node_t *temp = head;
+
+    do {
+        temp = temp->next;
+        if(temp==head) return;
+    }while(temp->p!=p);
+
+    deleteNode(temp);
+}
 /*
  * SIGCHLD handler
  */
@@ -216,6 +225,7 @@ sigchld_handler(int signum)
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
             if(head->p==p && head->id == 1) deleteNode(head);
             if (p==running->p) deleteNode(running);
+            else deletePS(p);
 		}
 
 		if (WIFSTOPPED(status)) {

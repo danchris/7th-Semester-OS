@@ -96,6 +96,7 @@ sigalrm_handler(int signum)
 
 }
 
+
 /*
  * SIGCHLD handler
  */
@@ -125,8 +126,7 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* A child has died */
 			printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-
-            if (p==running->p) deleteFromList(running->p);
+            deleteFromList(p);
 		}
 
 		if (WIFSTOPPED(status)) {
