@@ -300,10 +300,10 @@ sigalrm_handler(int signum)
 void deletePS(pid_t p){
     node_t *temp = head;
 
-    do {
+    while (temp->p!=p){
         temp = temp->next;
         if(temp==head) return;
-    }while(temp->p!=p);
+    }
 
     deleteNode(temp);
 }
