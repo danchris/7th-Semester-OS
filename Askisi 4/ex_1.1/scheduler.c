@@ -130,7 +130,7 @@ install_signal_handlers(void)
 
 int main(int argc, char *argv[])
 {
-    int nproc;
+    int nproc, i;
     /*
      * For each of argv[1] to argv[argc - 1],
      * create a new child process, add it to the process list.
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 
     pid_t p;
 
-    for(int i = 1; i <= nproc; i++){
+    for( i = 1; i <= nproc; i++){
 
         p = fork();
         if (p < 0) {
