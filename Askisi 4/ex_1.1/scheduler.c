@@ -134,8 +134,7 @@ sigchld_handler(int signum)
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
         running = running->next;
-        alarm(SCHED_TQ_SEC);
-    //    printf("Child with pid = %d will continue\n", running->p);
+        if (running != running->next) alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
 	}
 }
@@ -235,7 +234,7 @@ int main(int argc, char *argv[])
 
 
     running = head;
-    alarm(SCHED_TQ_SEC);
+    if(running != running->next) alarm(SCHED_TQ_SEC);
     kill(running->p,SIGCONT);
 	/* loop forever  until we exit from inside a signal handler. */
 	while (pause())

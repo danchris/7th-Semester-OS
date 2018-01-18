@@ -308,6 +308,28 @@ void deletePS(pid_t p){
     deleteNode(temp);
 }
 
+int listSize(){
+    node_t *temp = head;
+    int i=0;
+
+    do{
+        ++i;
+        temp = temp->next;
+    }while(temp!=head);
+    return i;
+}
+
+int highItems(){
+    node_t *temp = head;
+    int i=0;
+
+    while(temp->priority==1){
+        ++i;
+        temp=temp->next;
+        if(temp==head) break;
+    }
+    return i;
+}
 /*
  * SIGCHLD handler
  */
@@ -353,8 +375,7 @@ sigchld_handler(int signum)
             if(running->next->priority == 1) running = running->next;
             else running = head;
         }
-        alarm(SCHED_TQ_SEC);
-      //  printf("Child with pid = %d will continue\n", running->p);
+        if (highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
     }
 }
@@ -567,7 +588,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
     running = head;
-    alarm(SCHED_TQ_SEC);
+    if(running != running->next) alarm(SCHED_TQ_SEC);
     kill(running->p,SIGCONT);
     shell_request_loop(request_fd, return_fd);
 

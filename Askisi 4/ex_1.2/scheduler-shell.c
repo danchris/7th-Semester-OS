@@ -193,6 +193,7 @@ void deletePS(pid_t p){
 
     deleteNode(temp);
 }
+
 /*
  * SIGCHLD handler
  */
@@ -232,8 +233,8 @@ sigchld_handler(int signum)
 			/* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
 			printf("Parent: Child has been stopped. Moving right along...\n");
 		}
+        if (running != running->next) alarm(SCHED_TQ_SEC);
         running = running->next;
-        alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
 	}
 }
@@ -446,7 +447,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
     running = head;
-    alarm(SCHED_TQ_SEC);
+    if (running != running->next) alarm(SCHED_TQ_SEC);
     kill(running->p,SIGCONT);
 	shell_request_loop(request_fd, return_fd);
 
