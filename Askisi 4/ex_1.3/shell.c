@@ -29,7 +29,6 @@ void issue_request(int wfd, int rfd, struct request_struct *rq)
 		perror("Shell: read request return value");
 		exit(1);
 	}
-
 	if(ret < 0){
 		fprintf(stderr, "Shell: request return value ret = %d\n", ret);
 		fprintf(stderr, "       %s\n", strerror(-ret));

@@ -19,6 +19,14 @@
 #define RESET   "\033[0m"
 #define RED     "\033[31m"      /* Red */
 
+typedef struct node node_t;
+void insertEnd(int id, pid_t p, char *name);
+void deleteNode(node_t *temp);
+void deletePS(pid_t p);
+
+int counter=0;
+node_t *running=NULL, *head=NULL;
+
 typedef struct node {
     int id;
     char *name;
@@ -27,59 +35,7 @@ typedef struct node {
     struct node *next;
 } node_t;
 
-int counter=0;
-node_t *running=NULL, *head=NULL;
 
-void insertEnd (int id, pid_t p, char *name) {
-    if (head == NULL){
-        node_t *new = malloc(sizeof(node_t));
-        new->id = id;
-        new->p = p;
-        new->name = malloc(TASK_NAME_SZ * sizeof(char));
-        strcpy(new->name,name);
-        new->next = new->prev = new;
-        head = new;
-        return ;
-    }
-
-    node_t *last = (head)->prev;
-
-    node_t *new = malloc(sizeof(node_t ));
-    new->id = id;
-    new->p = p;
-    new->name = malloc(TASK_NAME_SZ * sizeof(char));
-    strcpy(new->name,name);
-    new->next = head;
-    head->prev = new;
-    new->prev = last;
-    last->next = new;
-}
-
-void deleteNode(node_t *deleted){
-
-
-    if(deleted==head && deleted->next==head) return;
-
-    if(head==NULL || deleted==NULL)
-        return;
-
-    if (deleted == head){
-        deleted->prev = (head) -> prev;
-
-        head = (head) -> next;
-
-        deleted->prev -> next = head;
-        (head) -> prev = deleted->prev;
-        free(deleted);
-        return;
-    }
-    deleted->next->prev = deleted->prev;
-    deleted->prev->next = deleted->next;
-
-    free(deleted);
-
-    return;
-}
 
 /* Print a list of all tasks currently being scheduled.  */
 static void
@@ -178,21 +134,13 @@ sigalrm_handler(int signum)
 	}
 
     /* Edw prepei na stamataw thn trexousa diergasia */
-	printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
-    kill(running->p,SIGSTOP);
-
-}
-
-void deletePS(pid_t p){
-    node_t *temp = head;
-
-    while (temp->p!=p){
-        temp = temp->next;
-        if(temp==head) return;
+    if(running!=running->next) {
+	    printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
+        kill(running->p,SIGSTOP);
     }
 
-    deleteNode(temp);
 }
+
 
 /*
  * SIGCHLD handler
@@ -460,4 +408,66 @@ int main(int argc, char *argv[])
 	/* Unreachable */
 	fprintf(stderr, "Internal error: Reached unreachable point\n");
 	return 1;
+}
+
+void insertEnd (int id, pid_t p, char *name) {
+    if (head == NULL){
+        node_t *new = malloc(sizeof(node_t));
+        new->id = id;
+        new->p = p;
+        new->name = malloc(TASK_NAME_SZ * sizeof(char));
+        strcpy(new->name,name);
+        new->next = new->prev = new;
+        head = new;
+        return ;
+    }
+
+    node_t *last = (head)->prev;
+
+    node_t *new = malloc(sizeof(node_t ));
+    new->id = id;
+    new->p = p;
+    new->name = malloc(TASK_NAME_SZ * sizeof(char));
+    strcpy(new->name,name);
+    new->next = head;
+    head->prev = new;
+    new->prev = last;
+    last->next = new;
+}
+
+void deleteNode(node_t *deleted){
+
+
+    if(deleted==head && deleted->next==head) return;
+
+    if(head==NULL || deleted==NULL)
+        return;
+
+    if (deleted == head){
+        deleted->prev = (head) -> prev;
+
+        head = (head) -> next;
+
+        deleted->prev -> next = head;
+        (head) -> prev = deleted->prev;
+        free(deleted);
+        return;
+    }
+    deleted->next->prev = deleted->prev;
+    deleted->prev->next = deleted->next;
+
+    free(deleted);
+
+    return;
+}
+
+void deletePS(pid_t p){
+    node_t *temp = head;
+
+    while (temp->p!=p){
+        temp = temp->next;
+        if(temp==head) return;
+    }
+
+    deleteNode(temp);
 }

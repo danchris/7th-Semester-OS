@@ -19,6 +19,20 @@
 #define RESET   "\033[0m"
 #define RED     "\033[31m"      /* Red */
 
+typedef struct node node_t;
+int listSize();
+int highItems();
+void insertBegin(int id, pid_t p, char *name);
+void insertEnd(int id, pid_t p, char *name);
+void insertAfter(int id, pid_t p, char *name);
+void deletePS(pid_t p);
+void deleteNode(node_t *temp);
+void changePriority(node_t *node, int priority);
+node_t *lastHigh();
+
+int counter=0;
+node_t *running=NULL, *head=NULL;
+
 typedef struct node {
     int id;
     int priority;           /* 0 = LOW | 1 = HIGH */
@@ -28,110 +42,7 @@ typedef struct node {
     struct node *next;
 } node_t;
 
-int counter=0;
-node_t *running=NULL, *head=NULL;
 
-void insertEnd (int id, pid_t p, char *name) {
-    if (head == NULL){
-        node_t *new = malloc(sizeof(node_t));
-        new->id = id;
-        new->priority = 0;
-        new->p = p;
-        new->name = malloc(TASK_NAME_SZ * sizeof(char));
-        strcpy(new->name,name);
-        new->next = new->prev = new;
-        head = new;
-        return ;
-    }
-
-    node_t *last = (head)->prev;
-
-    node_t *new = malloc(sizeof(node_t ));
-    new->id = id;
-    new->priority = 0;
-    new->p = p;
-    new->name = malloc(TASK_NAME_SZ * sizeof(char));
-    strcpy(new->name,name);
-    new->next = head;
-    head->prev = new;
-    new->prev = last;
-    last->next = new;
-}
-
-void insertBegin(int id, pid_t p, char *name){
-    node_t *last = head->prev;
-    node_t *new = malloc(sizeof(node_t));
-    new->id = id;
-    new->p = p;
-    new->name = malloc(TASK_NAME_SZ * sizeof(char));
-    strcpy(new->name,name);
-    new->next = head;
-    new->prev = last;
-
-    last->next = head->prev = new;
-
-    head = new;
-
-}
-
-void deleteNode(node_t *deleted){
-
-
-    if(deleted==head && deleted->next==head) return;
-
-    if(head==NULL || deleted==NULL)
-        return;
-
-    if (deleted == head){
-        deleted->prev = (head) -> prev;
-
-        head = (head) -> next;
-
-        deleted->prev -> next = head;
-        (head) -> prev = deleted->prev;
-        free(deleted);
-        return;
-    }
-    deleted->next->prev = deleted->prev;
-    deleted->prev->next = deleted->next;
-
-    free(deleted);
-
-    return;
-}
-
-void changePriority(node_t *node, int priority){
-    *&node->priority = priority;
-}
-
-node_t  *lastHigh(){
-    node_t *temp = head;
-    node_t *prev = NULL;
-
-    while(temp->priority!=0) {
-        prev = temp;
-        temp = temp->next;
-    }
-    return prev;
-}
-void insertAfter(int id, pid_t p, char *name){
-    node_t *last = lastHigh();
-    if(last==NULL) {
-        insertBegin(id,p,name);
-        return ;
-    }
-
-    node_t *new = malloc(sizeof(node_t));
-    new->id = id;
-    new->p = p;
-    new->name = malloc(TASK_NAME_SZ * sizeof(char));
-    strcpy(new->name,name);
-    new->next = last->next;
-    new->prev = last;
-    *&last->next->prev = new;
-    *&last->next = new;
-
-}
 /* Print a list of all tasks currently being scheduled.  */
     static void
 sched_print_tasks(void)
@@ -212,6 +123,11 @@ sched_high_task_by_id(int id)
 
     node_t *save = this;
     if(temp==NULL) {
+        if(this==head) {
+            changePriority(save,1);
+            kill(running->p,SIGSTOP);
+            return ;
+        }
         deleteNode(this);
         insertBegin(id,save->p,save->name);
     }
@@ -248,6 +164,8 @@ sched_low_task_by_id(int id)
         insertAfter(id,save->p,save->name);
     }
     changePriority(save,0);
+    kill(running->p,SIGSTOP);
+
 
 }
 /* Process requests by the shell.  */
@@ -291,44 +209,12 @@ sigalrm_handler(int signum)
         exit(1);
     }
 
-    /* Edw prepei na stamataw thn trexousa diergasia */
-    printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
-    kill(running->p,SIGSTOP);
-
-}
-
-void deletePS(pid_t p){
-    node_t *temp = head;
-
-    while (temp->p!=p){
-        temp = temp->next;
-        if(temp==head) return;
+    if(listSize()!=1 && highItems()!=1){
+        /* Edw prepei na stamataw thn trexousa diergasia */
+        printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
+        kill(running->p,SIGSTOP);
     }
 
-    deleteNode(temp);
-}
-
-int listSize(){
-    node_t *temp = head;
-    int i=0;
-
-    do{
-        ++i;
-        temp = temp->next;
-    }while(temp!=head);
-    return i;
-}
-
-int highItems(){
-    node_t *temp = head;
-    int i=0;
-
-    while(temp->priority==1){
-        ++i;
-        temp=temp->next;
-        if(temp==head) break;
-    }
-    return i;
 }
 /*
  * SIGCHLD handler
@@ -367,7 +253,7 @@ sigchld_handler(int signum)
 
         if (WIFSTOPPED(status)) {
             /* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
-            printf("Parent: Child has been stopped. Moving right along...\n");
+            //  printf("Parent: Child has been stopped. Moving right along...\n");
         }
 
         if(lastHigh()==NULL) running = running->next;
@@ -601,4 +487,142 @@ int main(int argc, char *argv[])
     /* Unreachable */
     fprintf(stderr, "Internal error: Reached unreachable point\n");
     return 1;
+}
+
+
+void insertEnd (int id, pid_t p, char *name) {
+    if (head == NULL){
+        node_t *new = malloc(sizeof(node_t));
+        new->id = id;
+        new->priority = 0;
+        new->p = p;
+        new->name = malloc(TASK_NAME_SZ * sizeof(char));
+        strcpy(new->name,name);
+        new->next = new->prev = new;
+        head = new;
+        return ;
+    }
+
+    node_t *last = (head)->prev;
+
+    node_t *new = malloc(sizeof(node_t ));
+    new->id = id;
+    new->priority = 0;
+    new->p = p;
+    new->name = malloc(TASK_NAME_SZ * sizeof(char));
+    strcpy(new->name,name);
+    new->next = head;
+    head->prev = new;
+    new->prev = last;
+    last->next = new;
+}
+
+void insertBegin(int id, pid_t p, char *name){
+    node_t *last = head->prev;
+    node_t *new = malloc(sizeof(node_t));
+    new->id = id;
+    new->p = p;
+    new->name = malloc(TASK_NAME_SZ * sizeof(char));
+    strcpy(new->name,name);
+    new->next = head;
+    new->prev = last;
+
+    last->next = head->prev = new;
+
+    head = new;
+
+}
+
+void deleteNode(node_t *deleted){
+
+
+    if(deleted==head && deleted->next==head) return;
+
+    if(head==NULL || deleted==NULL)
+        return;
+
+    if (deleted == head){
+        deleted->prev = (head) -> prev;
+
+        head = (head) -> next;
+
+        deleted->prev -> next = head;
+        (head) -> prev = deleted->prev;
+        free(deleted);
+        return;
+    }
+    deleted->next->prev = deleted->prev;
+    deleted->prev->next = deleted->next;
+
+    free(deleted);
+
+    return;
+}
+
+void changePriority(node_t *node, int priority){
+    *&node->priority = priority;
+}
+
+node_t  *lastHigh(){
+    node_t *temp = head;
+    node_t *prev = NULL;
+
+    while(temp->priority!=0) {
+        prev = temp;
+        temp = temp->next;
+        if(temp==head) break;
+    }
+    return prev;
+}
+void insertAfter(int id, pid_t p, char *name){
+    node_t *last = lastHigh();
+    if(last==NULL) {
+        insertBegin(id,p,name);
+        return ;
+    }
+
+    node_t *new = malloc(sizeof(node_t));
+    new->id = id;
+    new->p = p;
+    new->name = malloc(TASK_NAME_SZ * sizeof(char));
+    strcpy(new->name,name);
+    new->next = last->next;
+    new->prev = last;
+    *&last->next->prev = new;
+    *&last->next = new;
+
+}
+
+void deletePS(pid_t p){
+    node_t *temp = head;
+
+    while (temp->p!=p){
+        temp = temp->next;
+        if(temp==head) return;
+    }
+
+    deleteNode(temp);
+}
+
+int listSize(){
+    node_t *temp = head;
+    int i=0;
+
+    do{
+        ++i;
+        temp = temp->next;
+    }while(temp!=head);
+    return i;
+}
+
+int highItems(){
+    node_t *temp = head;
+    int i=0;
+
+    while(temp->priority==1){
+        ++i;
+        temp=temp->next;
+        if(temp==head) break;
+    }
+    return i;
 }
