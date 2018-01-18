@@ -411,10 +411,10 @@ int main(int argc, char *argv[])
 	 * For each of argv[1] to argv[argc - 1],
 	 * create a new child process, add it to the process list.
 	 */
-	nproc = argc - 1; /* number of proccesses goes here */
+	nproc = argc; /* number of proccesses goes here */
 
 
-    for(i = 1; i <= nproc; i++){
+    for(i = 1; i < nproc; i++){
 
         p = fork();
         if (p < 0) {
