@@ -261,7 +261,7 @@ sigchld_handler(int signum)
             if(running->next->priority == 1) running = running->next;
             else running = firstHigh();
         }
-        if(highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);        /* Doesn't need to set alarm if have only one node or only one high */
+        alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
 
     }
@@ -592,11 +592,8 @@ node_t *firstHigh(){
 }
 void insertAfter(int id, pid_t p, char *name){
     node_t *last = lastHigh();
+
     if(last==NULL) last = head;
-    //   if(last==NULL) {
-    //       insertBegin(id,p,name);
-    //       return ;
-    //   }
 
     node_t *new = malloc(sizeof(node_t));
     new->id = id;
@@ -605,8 +602,8 @@ void insertAfter(int id, pid_t p, char *name){
     strcpy(new->name,name);
     new->next = last->next;
     new->prev = last;
-    *&last->next->prev = new;
-    *&last->next = new;
+    last->next->prev = new;
+    last->next = new;
 
 }
 
