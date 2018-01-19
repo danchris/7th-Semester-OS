@@ -184,6 +184,10 @@ sigchld_handler(int signum)
         else if (p==running->p) deleteNode(running);
         else deletePS(p);
       }
+      if(head==NULL) {
+        printf("All processes finished. Exiting...\n");
+        exit(0);
+      }
     }
 
     if (WIFSTOPPED(status)) {
@@ -447,7 +451,10 @@ void insertEnd (int id, pid_t p, char *name) {
 void deleteNode(node_t *deleted){
 
 
-  if(deleted==head && deleted->next==head) return;
+  if(deleted==head && deleted->next==head) {
+      head = NULL;
+      return;
+  }
 
   if(head==NULL || deleted==NULL)
     return;
@@ -471,6 +478,7 @@ void deleteNode(node_t *deleted){
 }
 
 void deletePS(pid_t p){
+    if(head==NULL) return;
   node_t *temp = head;
 
   while (temp->p!=p){
@@ -482,6 +490,8 @@ void deletePS(pid_t p){
 }
 
 Bool findPS(pid_t p){
+
+  if(head==NULL) return false;
   node_t *temp = head;
 
   while(temp->p!=p){

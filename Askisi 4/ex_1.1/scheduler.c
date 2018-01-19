@@ -78,6 +78,10 @@ sigchld_handler(int signum)
             /* A child has died */
             printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
             deleteFromList(p);
+            if(head==NULL){
+                printf("All processe finished. Exiting...\n");
+                exit(0);
+            }
         }
 
         if (WIFSTOPPED(status)) {
@@ -233,6 +237,10 @@ void deleteFromList (pid_t p){
             break;
         prev = curr;
         curr = curr->next;
+    }
+    if(prev==NULL && curr->next==head) {
+        head = NULL;
+        return ;
     }
     if (curr==head){
         prev = head;

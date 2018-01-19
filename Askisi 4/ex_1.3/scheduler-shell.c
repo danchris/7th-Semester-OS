@@ -252,11 +252,15 @@ sigchld_handler(int signum)
                 else if (p==running->p) deleteNode(running);
                 else deletePS(p);
             }
+            if(listSize()==0) {
+                printf("All processes finished. Exiting...\n");
+                exit(0);
+            }
         }
 
         if (WIFSTOPPED(status)) {
             /* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
-              printf("Parent: Child has been stopped. Moving right along...\n");
+            printf("Parent: Child has been stopped. Moving right along...\n");
         }
         if(lastHigh()==NULL) running = running->next;
         else {
@@ -265,6 +269,7 @@ sigchld_handler(int signum)
         }
         if (highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
+
     }
 }
 
@@ -538,10 +543,13 @@ void insertBegin(int id, pid_t p, char *name){
 void deleteNode(node_t *deleted){
 
 
-    if(deleted==head && deleted->next==head) return;
+    if(deleted==head && deleted->next==head) {
+        head = NULL;
+        return ;
+    }
 
     if(head==NULL || deleted==NULL)
-        return;
+        return ;
 
     if (deleted == head){
         deleted->prev = (head) -> prev;
@@ -551,14 +559,14 @@ void deleteNode(node_t *deleted){
         deleted->prev -> next = head;
         (head) -> prev = deleted->prev;
         free(deleted);
-        return;
+        return ;
     }
     deleted->next->prev = deleted->prev;
     deleted->prev->next = deleted->next;
 
     free(deleted);
 
-    return;
+    return ;
 }
 
 void changePriority(node_t *node, int priority){
@@ -607,8 +615,10 @@ void deletePS(pid_t p){
 }
 
 int listSize(){
+    if(head==NULL) return 0;
     node_t *temp = head;
     int i=0;
+
 
     do{
         ++i;
@@ -618,6 +628,7 @@ int listSize(){
 }
 
 int highItems(){
+
     node_t *temp = head;
     int i=0;
 
@@ -630,6 +641,7 @@ int highItems(){
 }
 
 Bool findPS(pid_t p){
+    if(head==NULL) return false;
     node_t *temp = head;
 
     while(temp->p!=p){
