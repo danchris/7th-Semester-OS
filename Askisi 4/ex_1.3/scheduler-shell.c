@@ -56,7 +56,7 @@ sched_print_tasks(void)
     node_t *temp = head;
     printf("-------------------------------------------------------------------------------------------------\n");
     do{
-        printf("|ID = %d\t|\tName = %s\t|\tPID = %d\t|\tPRIORITY = %d", temp->id,temp->name,temp->p,temp->priority);
+        printf("|ID = %d\t|\tName = %s\t|\tPID = %d\t|\tPRIORITY = %c", temp->id,temp->name,temp->p,temp->priority==0?'L':'H');
         if (temp==running) printf("\tRunning...\t|\n");
         else printf("\t\t\t|\n");
         temp = temp->next;
