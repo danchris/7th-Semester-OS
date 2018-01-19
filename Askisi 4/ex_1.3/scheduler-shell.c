@@ -30,6 +30,7 @@ void deletePS(pid_t p);
 void deleteNode(node_t *temp);
 void changePriority(node_t *node, int priority);
 node_t *lastHigh();
+node_t *firstHigh();
 Bool findPS(pid_t p);
 
 int counter=0;
@@ -130,14 +131,12 @@ sched_high_task_by_id(int id)
     node_t *save = this;
     if(this==head) {
         changePriority(head,1);
-        kill(running->p,SIGSTOP);
         return ;
     }
 
     deleteNode(this);
     insertAfter(id,save->p,save->name);
     changePriority(save,1);
-    kill(running->p,SIGSTOP);
 
 }
 /* Set process with id low priority */
@@ -157,7 +156,6 @@ sched_low_task_by_id(int id)
 
     if(this==head) {
         changePriority(head,0);
-        kill(running->p,SIGSTOP);
         return ;
     }
 
@@ -165,7 +163,6 @@ sched_low_task_by_id(int id)
     deleteNode(this);
     insertAfter(id,save->p,save->name);
     changePriority(save,0);
-    kill(running->p,SIGSTOP);
 
 
 }
@@ -210,11 +207,8 @@ sigalrm_handler(int signum)
         exit(1);
     }
 
-    if(listSize()!=1 && highItems()!=1){
-        /* Edw prepei na stamataw thn trexousa diergasia */
-        printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
-        kill(running->p,SIGSTOP);
-    }
+    printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
+    kill(running->p,SIGSTOP);
 
 }
 /*
@@ -247,11 +241,7 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
             /* A child has died */
             printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
-            if(findPS(p)==true) {
-                if(head->p==p && head->id == 1) deleteNode(head);
-                else if (p==running->p) deleteNode(running);
-                else deletePS(p);
-            }
+            if(findPS(p)==true) deletePS(p);
             if(listSize()==0) {
                 printf("All processes finished. Exiting...\n");
                 exit(0);
@@ -265,9 +255,9 @@ sigchld_handler(int signum)
         if(lastHigh()==NULL) running = running->next;
         else {
             if(running->next->priority == 1) running = running->next;
-            else running = head;
+            else running = firstHigh();
         }
-        if (highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);
+        alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
 
     }
@@ -419,7 +409,6 @@ shell_request_loop(int request_fd, int return_fd)
         signals_disable();
         ret = process_request(&rq);
         signals_enable();
-
         if (write(return_fd, &ret, sizeof(ret)) != sizeof(ret)) {
             perror("scheduler: write to shell");
             fprintf(stderr, "Scheduler: giving up on shell request processing.\n");
@@ -484,7 +473,6 @@ int main(int argc, char *argv[])
     if(running != running->next) alarm(SCHED_TQ_SEC);
     kill(running->p,SIGCONT);
     shell_request_loop(request_fd, return_fd);
-
     /* Now that the shell is gone, just loop forever
      * until we exit from inside a signal handler.
      */
@@ -570,26 +558,41 @@ void deleteNode(node_t *deleted){
 }
 
 void changePriority(node_t *node, int priority){
-    *&node->priority = priority;
+    (node)->priority = priority;
 }
 
 node_t  *lastHigh(){
     node_t *temp = head;
-    node_t *prev = NULL;
-
-    while(temp->priority!=0) {
-        prev = temp;
+    node_t *ret = NULL;
+    do {
+        if(temp->priority == 1) {
+            ret = temp;
+        }
         temp = temp->next;
-        if(temp==head) break;
-    }
-    return prev;
+    }while(temp!=head);
+
+    return ret;
+}
+
+node_t *firstHigh(){
+    node_t *temp = head;
+
+    do {
+        if(temp->priority==1){
+            return temp;
+        }
+        temp = temp->next;
+    }while(temp!=head);
+
+    return NULL;
 }
 void insertAfter(int id, pid_t p, char *name){
     node_t *last = lastHigh();
-    if(last==NULL) {
-        insertBegin(id,p,name);
-        return ;
-    }
+    if(last==NULL) last = head;
+    //   if(last==NULL) {
+    //       insertBegin(id,p,name);
+    //       return ;
+    //   }
 
     node_t *new = malloc(sizeof(node_t));
     new->id = id;
@@ -632,11 +635,11 @@ int highItems(){
     node_t *temp = head;
     int i=0;
 
-    while(temp->priority==1){
-        ++i;
-        temp=temp->next;
-        if(temp==head) break;
-    }
+    do {
+        if(temp->priority==1) i++;
+        temp = temp->next;
+    }while(temp!=head);
+
     return i;
 }
 

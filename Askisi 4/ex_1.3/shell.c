@@ -72,7 +72,6 @@ void help(void)
 void process_cmdline(char *cmdline, int wfd, int rfd)
 {
 	struct request_struct rq;
-
 	if (strlen(cmdline) == 0 || strcmp(cmdline, "?") == 0){
 		help();
 		return;
