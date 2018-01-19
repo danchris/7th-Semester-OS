@@ -12,14 +12,17 @@
 #include "proc-common.h"
 #include "request.h"
 
-/* Compile-time parameters. */
-#define SCHED_TQ_SEC 2                /* time quantum */
-#define TASK_NAME_SZ 60               /* maximum size for a task's name */
 
-typedef struct node node_t;
-node_t *insertToEmpty(node_t *current, pid_t p);
-node_t *insertToList(node_t *current, pid_t p);
-void deleteFromList(pid_t p);
+/* Compile-time parameters. */
+#define SCHED_TQ_SEC 2                               /* time quantum */
+#define TASK_NAME_SZ 60                              /* maximum size for a task's name */
+
+
+/* Used simply linked list previous of head is NULL and next of last is head. Empty list head = NULL */
+typedef struct node node_t;                          /* node struct */
+node_t *insertToEmpty(node_t *current, pid_t p);     /* insert a node to empty list returns the node */
+node_t *insertToList(node_t *current, pid_t p);      /* insert a node to the end of the list */
+void deleteFromList(pid_t p);                        /* delete node from list via pid */
 
 node_t *running=NULL, *head=NULL;
 
@@ -88,8 +91,9 @@ sigchld_handler(int signum)
             /* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
             printf("Parent: Child has been stopped. Moving right along...\n");
         }
+        /* Choose next process */
         running = running->next;
-        if (running != running->next) alarm(SCHED_TQ_SEC);
+        if (running != running->next) alarm(SCHED_TQ_SEC); /* Doesn't need to set alarm if only one process */
         kill(running->p,SIGCONT);
     }
 }

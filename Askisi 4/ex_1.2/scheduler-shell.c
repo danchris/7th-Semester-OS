@@ -19,12 +19,13 @@
 #define RESET   "\033[0m"
 #define RED     "\033[31m"      /* Red */
 
-typedef struct node node_t;
-typedef enum _bool Bool;
-void insertEnd(int id, pid_t p, char *name);
-void deleteNode(node_t *temp);
-void deletePS(pid_t p);
-Bool findPS(pid_t p);
+/* Used double linked list previous of head is last and next of last is head. Empty list head = NULL */
+typedef struct node node_t;             /* node struct */
+typedef enum _bool Bool;                /* bool enum */
+void insertEnd(int id, pid_t p, char *name);    /* insert a node end of list */
+void deleteNode(node_t *temp);                  /*delete a node from list */
+void deletePS(pid_t p);                         /* delete a node from list via pid */
+Bool findPS(pid_t p);                           /* find a node from list via pid. Returns TRUE or FALSE */
 
 int counter=0;
 node_t *running=NULL, *head=NULL;
@@ -141,10 +142,7 @@ sigalrm_handler(int signum)
   }
 
   /* Edw prepei na stamataw thn trexousa diergasia */
-  if(running!=running->next) {
     printf("ALARM! %d seconds have passed.\n", SCHED_TQ_SEC);
-    kill(running->p,SIGSTOP);
-  }
 
 }
 
@@ -194,7 +192,7 @@ sigchld_handler(int signum)
       /* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
       printf("Parent: Child has been stopped. Moving right along...\n");
     }
-    if (running != running->next) alarm(SCHED_TQ_SEC);
+    if (running != running->next) alarm(SCHED_TQ_SEC);      /* if only one process in list doesn't need to set alaram again */
     running = running->next;
     kill(running->p,SIGCONT);
   }

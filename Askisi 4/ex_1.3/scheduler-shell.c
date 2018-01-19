@@ -13,32 +13,33 @@
 #include "request.h"
 
 /* Compile-time parameters. */
-#define SCHED_TQ_SEC 2                /* time quantum */
-#define TASK_NAME_SZ 60               /* maximum size for a task's name */
-#define SHELL_EXECUTABLE_NAME "shell" /* executable for shell */
+#define SCHED_TQ_SEC 2                              /* time quantum */
+#define TASK_NAME_SZ 60                             /* maximum size for a task's name */
+#define SHELL_EXECUTABLE_NAME "shell"               /* executable for shell */
 #define RESET   "\033[0m"
-#define RED     "\033[31m"      /* Red */
+#define RED     "\033[31m"                          /* Red */
 
-typedef struct node node_t;
-typedef enum _bool Bool;
-int listSize();
-int highItems();
-void insertBegin(int id, pid_t p, char *name);
-void insertEnd(int id, pid_t p, char *name);
-void insertAfter(int id, pid_t p, char *name);
-void deletePS(pid_t p);
-void deleteNode(node_t *temp);
-void changePriority(node_t *node, int priority);
-node_t *lastHigh();
-node_t *firstHigh();
-Bool findPS(pid_t p);
+/* Used double linked list previous of head is last and next of last is head. Empty list head = NULL */
+typedef struct node node_t;                         /* node struct */
+typedef enum _bool Bool;                            /* bool enum */
+int listSize();                                     /* returns the size of list */
+int highItems();                                    /* returns the number of processes with high priority */
+void insertBegin(int id, pid_t p, char *name);      /* insert to begin of a list */
+void insertEnd(int id, pid_t p, char *name);        /* insert to end of a list */
+void insertAfter(int id, pid_t p, char *name);      /* insert after a node to list */
+void deletePS(pid_t p);                             /* delete node via pid */
+void deleteNode(node_t *temp);                      /* delete node */
+void changePriority(node_t *node, int priority);    /* change priority of a process HIGH = 1 | LOW = 0 */
+node_t *lastHigh();                                 /* returns the last node with high priority or NULL if does not exist */
+node_t *firstHigh();                                /* returns the first node with high priority or NULL if does not exist */
+Bool findPS(pid_t p);                               /* find a process in list. Returns TRUE or FALSE */
 
 int counter=0;
 node_t *running=NULL, *head=NULL;
 
 typedef struct node {
     int id;
-    int priority;           /* 0 = LOW | 1 = HIGH */
+    int priority;                                   /* 0 = LOW | 1 = HIGH */
     char *name;
     pid_t p;
     struct node *prev;
@@ -241,7 +242,9 @@ sigchld_handler(int signum)
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
             /* A child has died */
             printf("Parent: Received SIGCHLD, child is dead. Exiting.\n");
+            /* If process exists in list delete */
             if(findPS(p)==true) deletePS(p);
+            /* End */
             if(listSize()==0) {
                 printf("All processes finished. Exiting...\n");
                 exit(0);
@@ -252,12 +255,13 @@ sigchld_handler(int signum)
             /* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
             printf("Parent: Child has been stopped. Moving right along...\n");
         }
+        /* If don't have processes with high priority just go to next process, else find the next high. */
         if(lastHigh()==NULL) running = running->next;
         else {
             if(running->next->priority == 1) running = running->next;
             else running = firstHigh();
         }
-        if(highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);
+        if(highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);        /* Doesn't need to set alarm if have only one node or only one high */
         kill(running->p,SIGCONT);
 
     }
