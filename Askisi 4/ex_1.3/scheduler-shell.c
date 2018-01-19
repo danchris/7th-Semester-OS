@@ -257,7 +257,7 @@ sigchld_handler(int signum)
             if(running->next->priority == 1) running = running->next;
             else running = firstHigh();
         }
-        alarm(SCHED_TQ_SEC);
+        if(highItems()!=1 && listSize()!=1) alarm(SCHED_TQ_SEC);
         kill(running->p,SIGCONT);
 
     }
