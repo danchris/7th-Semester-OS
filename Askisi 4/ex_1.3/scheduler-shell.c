@@ -256,9 +256,8 @@ sigchld_handler(int signum)
 
         if (WIFSTOPPED(status)) {
             /* A child has stopped due to SIGSTOP/SIGTSTP, etc... */
-            //  printf("Parent: Child has been stopped. Moving right along...\n");
+              printf("Parent: Child has been stopped. Moving right along...\n");
         }
-
         if(lastHigh()==NULL) running = running->next;
         else {
             if(running->next->priority == 1) running = running->next;
